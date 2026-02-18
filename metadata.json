@@ -1,0 +1,8 @@
+{
+  "name": "Ramadan Super App - AI Powered Smart Islamic Companion",
+  "description": "The ultimate enterprise-grade Ramadan companion featuring AI coaching, accurate prayer times, ibadah tracking, and community features.",
+  "requestFramePermissions": [
+    "geolocation",
+    "notifications"
+  ]
+}

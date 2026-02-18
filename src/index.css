@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-arabic: "Amiri", serif;
+  
+  --color-ramadan-green: #064e3b;
+  --color-ramadan-gold: #fbbf24;
+  --color-ramadan-emerald: #10b981;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-900 font-sans antialiased;
+  }
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+}
+
+.dark .glass {
+  @apply bg-stone-900/70 border-stone-800/50;
+}
+
+.arabic-text {
+  font-family: var(--font-arabic);
+  direction: rtl;
+}
