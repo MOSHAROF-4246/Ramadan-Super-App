@@ -7,7 +7,8 @@ import Database from "better-sqlite3";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = new Database("ramadan.db");
+const dbPath = process.env.NETLIFY ? "/tmp/ramadan.db" : "ramadan.db";
+const db = new Database(dbPath);
 
 // Initialize Database
 db.exec(`

@@ -48,6 +48,46 @@ export default function App() {
   const [countdown, setCountdown] = useState('');
   const [aiAdvice, setAiAdvice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [sehriAlertMins, setSehriAlertMins] = useState(15);
+  const [alertTriggered, setAlertTriggered] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkAlert = () => {
+      if (!prayerTimes || alertTriggered) return;
+      
+      const imsakTime = prayerTimes.Imsak;
+      const [hours, minutes] = imsakTime.split(':');
+      const imsakDate = new Date();
+      imsakDate.setHours(parseInt(hours), parseInt(minutes), 0);
+      
+      const alertDate = new Date(imsakDate.getTime() - sehriAlertMins * 60000);
+      const now = new Date();
+      
+      if (now >= alertDate && now < imsakDate) {
+        if (Notification.permission === "granted") {
+          new Notification(t.alertTitle, {
+            body: t.alertBody.replace('{mins}', sehriAlertMins.toString()),
+            icon: '/favicon.ico'
+          });
+          setAlertTriggered(true);
+        }
+      }
+      
+      // Reset alert after Imsak passes
+      if (now > imsakDate) {
+        setAlertTriggered(false);
+      }
+    };
+
+    const alertInterval = setInterval(checkAlert, 30000);
+    return () => clearInterval(alertInterval);
+  }, [prayerTimes, sehriAlertMins, alertTriggered, t]);
 
   useEffect(() => {
     fetchPrayerTimes();
@@ -166,6 +206,36 @@ export default function App() {
                     <span className="text-sm text-stone-700">{tip}</span>
                   </div>
                 ))}
+              </div>
+            </Card>
+
+            {/* Sehri Alert Setting */}
+            <Card className="bg-stone-50 border-stone-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Bell className="text-ramadan-emerald" size={20} />
+                  <h3 className="font-bold text-stone-800">{t.sehriAlert}</h3>
+                </div>
+                <span className="bg-ramadan-emerald/10 text-ramadan-emerald px-3 py-1 rounded-full text-xs font-bold">
+                  {sehriAlertMins} {t.minsBefore}
+                </span>
+              </div>
+              <input 
+                type="range" 
+                min="5" 
+                max="60" 
+                step="5"
+                value={sehriAlertMins}
+                onChange={(e) => {
+                  setSehriAlertMins(parseInt(e.target.value));
+                  setAlertTriggered(false);
+                }}
+                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-ramadan-emerald"
+              />
+              <div className="flex justify-between mt-2 text-[10px] text-stone-400 font-bold uppercase tracking-widest">
+                <span>5m</span>
+                <span>30m</span>
+                <span>60m</span>
               </div>
             </Card>
 

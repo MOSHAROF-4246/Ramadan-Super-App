@@ -28,6 +28,11 @@ export const translations = {
     netWealth: "Net Wealth",
     zakatDue: "Zakat Due",
     target: "Target",
+    sehriAlert: "Sehri Alert",
+    minsBefore: "mins before",
+    setAlert: "Set Alert",
+    alertTitle: "Sehri Time!",
+    alertBody: "Only {mins} minutes left for Sehri to end.",
     phrases: ['SubhanAllah', 'Alhamdulillah', 'Allahu Akbar', 'La ilaha illallah'],
     salahNames: {
       Fajr: "Fajr",
@@ -66,6 +71,11 @@ export const translations = {
     netWealth: "নিট সম্পদ",
     zakatDue: "যাকাত প্রদেয়",
     target: "লক্ষ্য",
+    sehriAlert: "সেহরী এলার্ট",
+    minsBefore: "মিনিট আগে",
+    setAlert: "এলার্ট সেট করুন",
+    alertTitle: "সেহরীর সময় হয়েছে!",
+    alertBody: "সেহরী শেষ হতে আর মাত্র {mins} মিনিট বাকি।",
     phrases: ['সুবহানাল্লাহ', 'আলহামদুলিল্লাহ', 'আল্লাহু আকবার', 'লা ইলাহা ইল্লাল্লাহ'],
     salahNames: {
       Fajr: "ফজর",
