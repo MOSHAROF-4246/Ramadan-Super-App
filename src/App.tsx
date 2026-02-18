@@ -5,7 +5,7 @@ import {
   Calendar, Award, Users, Calculator, Search,
   ChevronRight, Bell, Zap, Coffee, Droplets
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getRamadanCoachAdvice } from './services/geminiService';
 import { PrayerTimes, UserProfile, IbadahLog } from './types';
 import { QuranReader } from './components/QuranReader';
@@ -104,13 +104,26 @@ export default function App() {
   const fetchPrayerTimes = async () => {
     try {
       const res = await fetch(`/api/prayer-times?city=${location.city}&country=${location.country}`);
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       if (data.data) {
         setPrayerTimes(data.data.timings);
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching prayer times", error);
+      // Fallback to some default times if API fails
+      setPrayerTimes({
+        Fajr: "05:15",
+        Sunrise: "06:30",
+        Dhuhr: "12:15",
+        Asr: "15:30",
+        Maghrib: "18:15",
+        Isha: "19:30",
+        Imsak: "05:05",
+        Midnight: "00:00"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

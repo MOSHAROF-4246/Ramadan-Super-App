@@ -6,9 +6,20 @@
     <title>My Google AI Studio App</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #064e3b;">
+        <div style="text-align: center;">
+          <h2>রমজান সুপার / Ramadan Super</h2>
+          <p>Loading application...</p>
+        </div>
+      </div>
+    </div>
     <script>
-      window.process = { env: {} };
+      window.process = { 
+        env: { 
+          NODE_ENV: 'production' 
+        } 
+      };
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

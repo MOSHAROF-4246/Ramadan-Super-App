@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RotateCcw, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { translations, Language } from '../translations';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Book, Play, Pause, Bookmark } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 import { translations, Language } from '../translations';
 
