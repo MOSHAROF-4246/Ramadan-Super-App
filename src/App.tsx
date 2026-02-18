@@ -1,17 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Moon, Sun, MapPin, Clock, BookOpen, Heart, 
   Settings, BarChart3, MessageSquare, Home, 
-  Calendar, Award, Users, Calculator, Search,
-  ChevronRight, Bell, Zap, Coffee, Droplets
+  Calendar as CalendarIcon, Award, Users, Calculator, Search,
+  ChevronRight, Bell, Zap, Coffee, Droplets, Save, Download,
+  CheckCircle2, XCircle, Edit3, Trash2, Globe, Layout,
+  ChevronLeft, MoreVertical, Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, PieChart, Pie
+} from 'recharts';
 import { getRamadanCoachAdvice } from './services/geminiService';
-import { PrayerTimes, UserProfile, IbadahLog } from './types';
+import { PrayerTimes, UserProfile, DailyLog } from './types';
 import { QuranReader } from './components/QuranReader';
 import { ZakatCalculator } from './components/ZakatCalculator';
 import { TasbihCounter } from './components/TasbihCounter';
 import { translations, Language } from './translations';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+// --- Utils ---
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 // --- Components ---
 
@@ -20,20 +33,38 @@ const Card = ({ children, className = "", onClick }: { children: React.ReactNode
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     onClick={onClick}
-    className={`glass rounded-3xl p-6 ${className} ${onClick ? 'cursor-pointer hover:bg-stone-50 transition-colors' : ''}`}
+    className={cn(
+      "glass rounded-3xl p-6 transition-all duration-300",
+      onClick && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+      className
+    )}
   >
     {children}
   </motion.div>
 );
 
-const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
+const NavItem = ({ icon: Icon, label, active, onClick, isCenter = false }: any) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center justify-center gap-1 transition-all duration-300 ${active ? 'text-ramadan-emerald scale-110' : 'text-stone-400 hover:text-stone-600'}`}
+    className={cn(
+      "flex flex-col items-center justify-center gap-1 transition-all duration-300",
+      active ? "text-ramadan-emerald" : "text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300",
+      isCenter && "relative -top-8 w-16 h-16 rounded-full bg-ramadan-green text-white shadow-xl shadow-ramadan-green/40 border-4 border-white dark:border-zinc-900"
+    )}
   >
-    <Icon size={24} strokeWidth={active ? 2.5 : 2} />
-    <span className="text-[10px] font-medium uppercase tracking-wider">{label}</span>
+    <Icon size={isCenter ? 32 : 24} strokeWidth={active ? 2.5 : 2} />
+    {!isCenter && <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>}
   </button>
+);
+
+const StatCard = ({ label, value, icon: Icon, colorClass }: any) => (
+  <Card className="p-4">
+    <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center mb-3", colorClass)}>
+      <Icon size={20} />
+    </div>
+    <div className="text-2xl font-display font-bold text-stone-800 dark:text-stone-100">{value}</div>
+    <div className="text-xs text-stone-500 dark:text-stone-400 font-medium">{label}</div>
+  </Card>
 );
 
 // --- Main App ---
@@ -41,56 +72,42 @@ const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [lang, setLang] = useState<Language>('en');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const t = translations[lang];
+  const isRTL = lang === 'ar';
+
   const [location, setLocation] = useState({ city: 'Dhaka', country: 'Bangladesh' });
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string, time: string } | null>(null);
   const [countdown, setCountdown] = useState('');
   const [aiAdvice, setAiAdvice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [sehriAlertMins, setSehriAlertMins] = useState(15);
-  const [alertTriggered, setAlertTriggered] = useState(false);
+  const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [currentLog, setCurrentLog] = useState<DailyLog>({
+    user_id: 'user_1',
+    date: new Date().toISOString().split('T')[0],
+    roza_kept: true,
+    sehri_taken: true,
+    iftar_done: true,
+    taraweeh_prayed: false,
+    quran_pages: 0,
+    zikr_count: 0,
+    charity_amount: 0
+  });
+
+  // --- Effects ---
 
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  }, []);
-
-  useEffect(() => {
-    const checkAlert = () => {
-      if (!prayerTimes || alertTriggered) return;
-      
-      const imsakTime = prayerTimes.Imsak;
-      const [hours, minutes] = imsakTime.split(':');
-      const imsakDate = new Date();
-      imsakDate.setHours(parseInt(hours), parseInt(minutes), 0);
-      
-      const alertDate = new Date(imsakDate.getTime() - sehriAlertMins * 60000);
-      const now = new Date();
-      
-      if (now >= alertDate && now < imsakDate) {
-        if (Notification.permission === "granted") {
-          new Notification(t.alertTitle, {
-            body: t.alertBody.replace('{mins}', sehriAlertMins.toString()),
-            icon: '/favicon.ico'
-          });
-          setAlertTriggered(true);
-        }
-      }
-      
-      // Reset alert after Imsak passes
-      if (now > imsakDate) {
-        setAlertTriggered(false);
-      }
-    };
-
-    const alertInterval = setInterval(checkAlert, 30000);
-    return () => clearInterval(alertInterval);
-  }, [prayerTimes, sehriAlertMins, alertTriggered, t]);
+  }, [isDarkMode]);
 
   useEffect(() => {
     fetchPrayerTimes();
+    fetchLogs();
     fetchAiAdvice();
   }, [location, lang]);
 
@@ -101,34 +118,63 @@ export default function App() {
     return () => clearInterval(timer);
   }, [prayerTimes]);
 
+  // --- API Calls ---
+
   const fetchPrayerTimes = async () => {
     try {
       const res = await fetch(`/api/prayer-times?city=${location.city}&country=${location.country}`);
-      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       if (data.data) {
         setPrayerTimes(data.data.timings);
       }
     } catch (error) {
       console.error("Error fetching prayer times", error);
-      // Fallback to some default times if API fails
-      setPrayerTimes({
-        Fajr: "05:15",
-        Sunrise: "06:30",
-        Dhuhr: "12:15",
-        Asr: "15:30",
-        Maghrib: "18:15",
-        Isha: "19:30",
-        Imsak: "05:05",
-        Midnight: "00:00"
-      });
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch(`/api/logs/user_1`);
+      const data = await res.json();
+      setLogs(data);
+      const today = new Date().toISOString().split('T')[0];
+      const todayLog = data.find((l: any) => l.date === today);
+      if (todayLog) {
+        setCurrentLog({
+          ...todayLog,
+          roza_kept: !!todayLog.roza_kept,
+          sehri_taken: !!todayLog.sehri_taken,
+          iftar_done: !!todayLog.iftar_done,
+          taraweeh_prayed: !!todayLog.taraweeh_prayed
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching logs", error);
+    }
+  };
+
+  const saveLog = async () => {
+    try {
+      await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentLog)
+      });
+      fetchLogs();
+      alert(lang === 'bn' ? 'সংরক্ষিত হয়েছে!' : (lang === 'ar' ? 'تم الحفظ!' : 'Saved successfully!'));
+    } catch (error) {
+      console.error("Error saving log", error);
+    }
+  };
+
   const fetchAiAdvice = async () => {
-    const advice = await getRamadanCoachAdvice({ fasting: true, quran: '2 juz', mood: 'energetic' }, lang);
+    const advice = await getRamadanCoachAdvice({ 
+      fasting: currentLog.roza_kept, 
+      quran: `${currentLog.quran_pages} pages`, 
+      mood: 'energetic' 
+    }, lang);
     setAiAdvice(advice);
   };
 
@@ -153,238 +199,368 @@ export default function App() {
     setCountdown(`${h}h ${m}m ${s}s`);
   };
 
+  // --- Render Helpers ---
+
+  const chartData = useMemo(() => {
+    return logs.slice(0, 7).reverse().map(l => ({
+      date: l.date.split('-')[2],
+      quran: l.quran_pages,
+      zikr: l.zikr_count / 10, // scaled for chart
+      charity: l.charity_amount
+    }));
+  }, [logs]);
+
   return (
-    <div className="min-h-screen pb-24 max-w-md mx-auto relative overflow-hidden">
+    <div className={cn(
+      "min-h-screen pb-32 max-w-md mx-auto relative overflow-x-hidden transition-colors duration-500",
+      isDarkMode ? "bg-zinc-950 text-stone-100" : "bg-stone-50 text-stone-900",
+      isRTL && "rtl"
+    )}>
       {/* Background Elements */}
-      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-ramadan-emerald/10 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-ramadan-gold/10 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-ramadan-emerald/10 rounded-full blur-[120px] -z-10" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-ramadan-gold/10 rounded-full blur-[120px] -z-10" />
 
       {/* Header */}
-      <header className="p-6 flex justify-between items-center">
+      <header className="p-6 flex justify-between items-center sticky top-0 z-40 backdrop-blur-xl bg-white/10 dark:bg-black/10">
         <div>
-          <h1 className="text-2xl font-display font-bold text-ramadan-green">{t.appName}</h1>
-          <div className="flex items-center gap-1 text-stone-500 text-sm">
-            <MapPin size={14} />
+          <h1 className="text-2xl font-display font-bold text-ramadan-green dark:text-ramadan-emerald">{t.appName}</h1>
+          <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-sm font-medium">
+            <MapPin size={14} className="text-ramadan-emerald" />
             <span>{location.city}, {location.country}</span>
           </div>
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
-            className="px-3 py-1 glass rounded-xl text-xs font-bold text-ramadan-emerald"
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-3 glass rounded-2xl text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            {lang === 'en' ? 'BN' : 'EN'}
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button className="p-3 glass rounded-2xl text-stone-600"><Bell size={20} /></button>
+          <button 
+            onClick={() => {
+              const langs: Language[] = ['en', 'bn', 'ar'];
+              const next = langs[(langs.indexOf(lang) + 1) % langs.length];
+              setLang(next);
+            }}
+            className="px-4 py-1 glass rounded-2xl text-xs font-bold text-ramadan-emerald uppercase tracking-widest"
+          >
+            {lang}
+          </button>
         </div>
       </header>
 
-      <main className="px-6 space-y-6">
-        {activeTab === 'home' && (
-          <>
-            {/* Hero Countdown */}
-            <Card className="bg-gradient-to-br from-ramadan-green to-emerald-900 text-white border-none overflow-hidden relative">
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
-                    {t.next}: {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name}
-                  </span>
-                  <Moon className="text-ramadan-gold fill-ramadan-gold" size={24} />
-                </div>
-                <div className="text-4xl font-display font-bold mb-1">{countdown}</div>
-                <p className="text-white/70 text-sm">
-                  {t.until} {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name} {t.at} {nextPrayer?.time}
-                </p>
-              </div>
-              <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
-                <Moon size={150} />
-              </div>
-            </Card>
-
-            {/* AI Coach Advice */}
-            <Card className="bg-ramadan-gold/5 border-ramadan-gold/20">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-ramadan-gold/20 rounded-xl text-ramadan-gold">
-                  <Zap size={20} />
-                </div>
-                <h3 className="font-display font-bold text-stone-800">{t.aiCoach}</h3>
-              </div>
-              <p className="text-stone-600 text-sm italic mb-4">"{aiAdvice?.motivation || t.loadingAdvice}"</p>
-              <div className="space-y-3">
-                {aiAdvice?.tips?.map((tip: string, i: number) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <div className="w-5 h-5 rounded-full bg-ramadan-emerald/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-ramadan-emerald" />
+      <main className="px-6 space-y-8">
+        <AnimatePresence mode="wait">
+          {activeTab === 'home' && (
+            <motion.div 
+              key="home"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              {/* Hero Countdown */}
+              <Card className="bg-gradient-to-br from-ramadan-green to-emerald-950 text-white border-none overflow-hidden relative p-8 shadow-2xl shadow-ramadan-green/30">
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <span className="bg-white/20 px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                      {t.next}: {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : (lang === 'ar' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name)}
+                    </span>
+                    <div className="p-2 bg-ramadan-gold rounded-xl text-ramadan-green shadow-lg shadow-ramadan-gold/40">
+                      <Moon size={24} fill="currentColor" />
                     </div>
-                    <span className="text-sm text-stone-700">{tip}</span>
                   </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Sehri Alert Setting */}
-            <Card className="bg-stone-50 border-stone-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Bell className="text-ramadan-emerald" size={20} />
-                  <h3 className="font-bold text-stone-800">{t.sehriAlert}</h3>
+                  <div className="text-6xl font-display font-bold mb-2 tracking-tighter">{countdown}</div>
+                  <p className="text-white/70 text-sm font-medium">
+                    {t.until} {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : (lang === 'ar' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name)} {t.at} <span className="font-mono font-bold text-white">{nextPrayer?.time}</span>
+                  </p>
                 </div>
-                <span className="bg-ramadan-emerald/10 text-ramadan-emerald px-3 py-1 rounded-full text-xs font-bold">
-                  {sehriAlertMins} {t.minsBefore}
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="5" 
-                max="60" 
-                step="5"
-                value={sehriAlertMins}
-                onChange={(e) => {
-                  setSehriAlertMins(parseInt(e.target.value));
-                  setAlertTriggered(false);
-                }}
-                className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-ramadan-emerald"
-              />
-              <div className="flex justify-between mt-2 text-[10px] text-stone-400 font-bold uppercase tracking-widest">
-                <span>5m</span>
-                <span>30m</span>
-                <span>60m</span>
-              </div>
-            </Card>
-
-            {/* Quick Actions Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card 
-                onClick={() => setActiveTab('quran')}
-                className="flex flex-col items-center text-center gap-3 hover:bg-stone-50 transition-colors cursor-pointer"
-              >
-                <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><BookOpen size={24} /></div>
-                <div>
-                  <h4 className="font-bold text-stone-800">{t.quran}</h4>
-                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">{t.readListen}</p>
+                <div className="absolute right-[-40px] bottom-[-40px] opacity-10 rotate-12">
+                  <Moon size={240} />
                 </div>
               </Card>
-              <Card 
-                onClick={() => setActiveTab('zakat')}
-                className="flex flex-col items-center text-center gap-3 hover:bg-stone-50 transition-colors cursor-pointer"
-              >
-                <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Heart size={24} /></div>
-                <div>
-                  <h4 className="font-bold text-stone-800">{t.zakat}</h4>
-                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">{t.calculateWealth}</p>
-                </div>
-              </Card>
-            </div>
 
-            {/* Prayer Times List */}
-            <Card>
-              <h3 className="font-display font-bold text-stone-800 mb-4 flex items-center gap-2">
-                <Clock size={18} className="text-ramadan-emerald" />
-                {t.schedule}
-              </h3>
-              <div className="space-y-1">
-                {prayerTimes && Object.entries(prayerTimes).filter(([k]) => !['Imsak', 'Midnight', 'Sunset'].includes(k)).map(([name, time]) => (
-                  <div key={name} className={`flex justify-between items-center p-3 rounded-2xl transition-all ${nextPrayer?.name === name ? 'bg-ramadan-emerald/10 text-ramadan-emerald font-bold' : 'text-stone-600'}`}>
-                    <span>{lang === 'bn' ? (t.salahNames[name as keyof typeof t.salahNames] || name) : name}</span>
-                    <span className="font-mono">{time}</span>
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <StatCard 
+                  label={t.streak} 
+                  value={`${logs.filter(l => l.roza_kept).length} ${t.days}`} 
+                  icon={Award} 
+                  colorClass="bg-ramadan-gold/20 text-ramadan-gold" 
+                />
+                <StatCard 
+                  label={t.stats.quranProgress} 
+                  value={`${logs.reduce((acc, l) => acc + l.quran_pages, 0)} pgs`} 
+                  icon={BookOpen} 
+                  colorClass="bg-blue-500/20 text-blue-500" 
+                />
+              </div>
+
+              {/* AI Coach Advice */}
+              <Card className="bg-ramadan-gold/5 dark:bg-ramadan-gold/10 border-ramadan-gold/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 bg-ramadan-gold/20 rounded-2xl text-ramadan-gold">
+                    <Zap size={22} fill="currentColor" />
                   </div>
-                ))}
-              </div>
-            </Card>
-          </>
-        )}
-
-        {activeTab === 'tracker' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.tracker}</h2>
-            <Card>
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex flex-col">
-                  <span className="text-xs text-stone-400 uppercase font-bold tracking-widest">{t.streak}</span>
-                  <span className="text-3xl font-display font-bold text-ramadan-emerald">12 {t.days}</span>
+                  <h3 className="font-display font-bold text-stone-800 dark:text-stone-100 text-lg">{t.aiCoach}</h3>
                 </div>
-                <Award size={48} className="text-ramadan-gold" />
+                <p className="text-stone-600 dark:text-stone-400 text-sm italic mb-6 leading-relaxed">"{aiAdvice?.motivation || t.loadingAdvice}"</p>
+                <div className="space-y-4">
+                  {aiAdvice?.tips?.map((tip: string, i: number) => (
+                    <div key={i} className="flex gap-4 items-start group">
+                      <div className="w-6 h-6 rounded-full bg-ramadan-emerald/20 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                        <CheckCircle2 size={14} className="text-ramadan-emerald" />
+                      </div>
+                      <span className="text-sm text-stone-700 dark:text-stone-300 font-medium leading-snug">{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Prayer Schedule Preview */}
+              <Card className="p-0 overflow-hidden">
+                <div className="p-6 border-b border-stone-100 dark:border-zinc-800 flex justify-between items-center">
+                  <h3 className="font-display font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
+                    <Clock size={18} className="text-ramadan-emerald" />
+                    {t.schedule}
+                  </h3>
+                  <button onClick={() => setActiveTab('calendar')} className="text-xs font-bold text-ramadan-emerald uppercase tracking-widest">{t.back}</button>
+                </div>
+                <div className="p-2">
+                  {prayerTimes && Object.entries(prayerTimes).filter(([k]) => !['Imsak', 'Midnight', 'Sunset'].includes(k)).map(([name, time]) => (
+                    <div key={name} className={cn(
+                      "flex justify-between items-center p-4 rounded-2xl transition-all",
+                      nextPrayer?.name === name ? "bg-ramadan-emerald/10 text-ramadan-emerald font-bold scale-[1.02]" : "text-stone-600 dark:text-stone-400"
+                    )}>
+                      <span className="text-sm font-medium">{lang === 'bn' ? (t.salahNames[name as keyof typeof t.salahNames] || name) : (lang === 'ar' ? (t.salahNames[name as keyof typeof t.salahNames] || name) : name)}</span>
+                      <span className="font-mono text-base">{time}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === 'tracker' && (
+            <motion.div 
+              key="tracker"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-display font-bold text-ramadan-green dark:text-ramadan-emerald">{t.tracker}</h2>
+                <div className="text-xs font-bold text-stone-400 uppercase tracking-widest">{currentLog.date}</div>
               </div>
-              <div className="grid grid-cols-7 gap-2">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className={`h-10 rounded-lg flex items-center justify-center text-xs font-bold ${i < 5 ? 'bg-ramadan-emerald text-white' : 'bg-stone-100 text-stone-400'}`}>
-                    {i + 1}
+
+              <Card className="space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Boolean Toggles */}
+                  {[
+                    { key: 'roza_kept', label: t.trackerFields.roza, icon: Sun },
+                    { key: 'sehri_taken', label: t.trackerFields.sehri, icon: Coffee },
+                    { key: 'iftar_done', label: t.trackerFields.iftar, icon: Droplets },
+                    { key: 'taraweeh_prayed', label: t.trackerFields.taraweeh, icon: Moon },
+                  ].map((field) => (
+                    <div key={field.key} className="flex items-center justify-between p-4 bg-stone-50 dark:bg-zinc-900/50 rounded-2xl border border-stone-100 dark:border-zinc-800">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white dark:bg-zinc-800 rounded-xl shadow-sm">
+                          <field.icon size={18} className="text-ramadan-emerald" />
+                        </div>
+                        <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{field.label}</span>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentLog({...currentLog, [field.key]: !currentLog[field.key as keyof DailyLog]})}
+                        className={cn(
+                          "w-12 h-6 rounded-full transition-colors relative",
+                          currentLog[field.key as keyof DailyLog] ? "bg-ramadan-emerald" : "bg-stone-200 dark:bg-zinc-800"
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+                          currentLog[field.key as keyof DailyLog] ? (isRTL ? "left-1" : "right-1") : (isRTL ? "right-1" : "left-1")
+                        )} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Numeric Inputs */}
+                  {[
+                    { key: 'quran_pages', label: t.trackerFields.quran, icon: BookOpen, unit: 'pgs' },
+                    { key: 'zikr_count', label: t.trackerFields.zikr, icon: Zap, unit: 'cnt' },
+                    { key: 'charity_amount', label: t.trackerFields.charity, icon: Heart, unit: '$' },
+                  ].map((field) => (
+                    <div key={field.key} className="p-4 bg-stone-50 dark:bg-zinc-900/50 rounded-2xl border border-stone-100 dark:border-zinc-800">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white dark:bg-zinc-800 rounded-xl shadow-sm">
+                            <field.icon size={18} className="text-ramadan-emerald" />
+                          </div>
+                          <span className="text-sm font-bold text-stone-700 dark:text-stone-300">{field.label}</span>
+                        </div>
+                        <span className="text-xs font-bold text-ramadan-emerald">{currentLog[field.key as keyof DailyLog]} {field.unit}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max={field.key === 'zikr_count' ? 5000 : 100}
+                        step={field.key === 'zikr_count' ? 100 : 1}
+                        value={currentLog[field.key as keyof DailyLog] as number}
+                        onChange={(e) => setCurrentLog({...currentLog, [field.key]: parseInt(e.target.value)})}
+                        className="w-full h-1.5 bg-stone-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-ramadan-emerald"
+                      />
+                    </div>
+                  ))}
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-widest">{t.trackerFields.notes}</label>
+                    <textarea 
+                      value={currentLog.notes || ''}
+                      onChange={(e) => setCurrentLog({...currentLog, notes: e.target.value})}
+                      className="w-full p-4 bg-stone-50 dark:bg-zinc-900/50 rounded-2xl border border-stone-100 dark:border-zinc-800 focus:ring-2 focus:ring-ramadan-emerald outline-none text-sm min-h-[100px]"
+                      placeholder="..."
+                    />
                   </div>
-                ))}
-              </div>
-            </Card>
-
-            <div className="space-y-4">
-              <h3 className="font-display font-bold text-stone-800">{t.checklist}</h3>
-              {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Taraweeh', 'Quran Reading', 'Sadaqah'].map((item) => (
-                <div key={item} className="flex items-center justify-between p-4 glass rounded-2xl">
-                  <span className="font-medium text-stone-700">{lang === 'bn' ? (t.salahNames[item as keyof typeof t.salahNames] || item) : item}</span>
-                  <input type="checkbox" className="w-6 h-6 rounded-lg accent-ramadan-emerald" />
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'quran' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.quran}</h2>
-            <QuranReader lang={lang} />
-          </div>
-        )}
-
-        {activeTab === 'zakat' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.zakat}</h2>
-            <ZakatCalculator lang={lang} />
-          </div>
-        )}
-
-        {activeTab === 'tasbih' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.tasbih}</h2>
-            <TasbihCounter lang={lang} />
-          </div>
-        )}
-
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">Insights</h2>
-            <Card className="h-64 flex items-center justify-center">
-              <BarChart3 size={48} className="text-stone-200" />
-              <span className="absolute text-stone-400 font-medium">Spiritual Heatmap Loading...</span>
-            </Card>
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-blue-50/50 border-blue-100">
-                <div className="text-blue-600 mb-2"><Droplets size={20} /></div>
-                <div className="text-2xl font-bold text-stone-800">1.2L</div>
-                <div className="text-xs text-stone-500">Water Intake</div>
+                <button 
+                  onClick={saveLog}
+                  className="w-full py-4 bg-ramadan-green text-white rounded-2xl font-bold shadow-xl shadow-ramadan-green/20 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  <Save size={20} />
+                  {lang === 'bn' ? 'সেভ করুন' : (lang === 'ar' ? 'حفظ' : 'Save Progress')}
+                </button>
               </Card>
-              <Card className="bg-orange-50/50 border-orange-100">
-                <div className="text-orange-600 mb-2"><Coffee size={20} /></div>
-                <div className="text-2xl font-bold text-stone-800">1,450</div>
-                <div className="text-xs text-stone-500">Calories (Iftar)</div>
+            </motion.div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <motion.div 
+              key="analytics"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-6"
+            >
+              <h2 className="text-2xl font-display font-bold text-ramadan-green dark:text-ramadan-emerald">{t.stats.rozaRate}</h2>
+              
+              <Card className="p-4">
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} />
+                      <YAxis hide />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                        itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                      />
+                      <Line type="monotone" dataKey="quran" stroke="#10b981" strokeWidth={4} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 8 }} />
+                      <Line type="monotone" dataKey="zikr" stroke="#fbbf24" strokeWidth={4} dot={{ r: 4, fill: '#fbbf24' }} activeDot={{ r: 8 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-6 mt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-ramadan-emerald" />
+                    <span className="text-[10px] font-bold text-stone-500 uppercase">{t.quran}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-ramadan-gold" />
+                    <span className="text-[10px] font-bold text-stone-500 uppercase">{t.tasbih}</span>
+                  </div>
+                </div>
               </Card>
-            </div>
-          </div>
-        )}
+
+              <div className="grid grid-cols-1 gap-4">
+                <Card className="flex items-center justify-between p-6">
+                  <div>
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{t.stats.prayerConsistency}</div>
+                    <div className="text-3xl font-display font-bold text-stone-800 dark:text-stone-100">92%</div>
+                  </div>
+                  <div className="w-16 h-16 rounded-full border-4 border-ramadan-emerald border-t-transparent animate-spin-slow" />
+                </Card>
+                <Card className="flex items-center justify-between p-6">
+                  <div>
+                    <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{t.stats.charityTotal}</div>
+                    <div className="text-3xl font-display font-bold text-stone-800 dark:text-stone-100">${logs.reduce((acc, l) => acc + l.charity_amount, 0)}</div>
+                  </div>
+                  <Heart size={40} className="text-red-400 fill-red-400 opacity-20" />
+                </Card>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'calendar' && (
+            <motion.div 
+              key="calendar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-display font-bold text-ramadan-green dark:text-ramadan-emerald">{t.schedule}</h2>
+                <button className="p-2 glass rounded-xl text-ramadan-emerald"><Download size={20} /></button>
+              </div>
+              
+              <Card className="p-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-stone-50 dark:bg-zinc-900 text-stone-400 uppercase text-[10px] font-bold tracking-widest">
+                      <tr>
+                        <th className="p-4">Day</th>
+                        <th className="p-4">Sehri</th>
+                        <th className="p-4">Iftar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100 dark:divide-zinc-800">
+                      {[...Array(30)].map((_, i) => (
+                        <tr key={i} className={cn(
+                          "hover:bg-stone-50 dark:hover:bg-zinc-900 transition-colors",
+                          i === 11 && "bg-ramadan-emerald/5 text-ramadan-emerald font-bold"
+                        )}>
+                          <td className="p-4">Ramadan {i + 1}</td>
+                          <td className="p-4 font-mono">05:12 AM</td>
+                          <td className="p-4 font-mono">06:18 PM</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === 'tasbih' && (
+            <motion.div key="tasbih" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <TasbihCounter lang={lang} />
+            </motion.div>
+          )}
+          
+          {activeTab === 'quran' && (
+            <motion.div key="quran" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <QuranReader lang={lang} />
+            </motion.div>
+          )}
+
+          {activeTab === 'zakat' && (
+            <motion.div key="zakat" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <ZakatCalculator lang={lang} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 z-50">
-        <div className="glass rounded-[32px] p-4 flex justify-between items-center shadow-2xl border-white/40">
+        <div className="glass rounded-[40px] p-2 flex justify-between items-center shadow-2xl border-white/40 dark:border-zinc-800/40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-2xl">
           <NavItem icon={Home} label={t.home} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <NavItem icon={Calendar} label={t.tracker} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
-          <div className="relative -top-8">
-            <button 
-              onClick={() => setActiveTab('tasbih')}
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-white transition-all ${activeTab === 'tasbih' ? 'bg-ramadan-gold scale-110 shadow-ramadan-gold/40' : 'bg-ramadan-green shadow-ramadan-green/40'}`}
-            >
-              <Zap size={32} />
-            </button>
-          </div>
-          <NavItem icon={Users} label={t.social} active={activeTab === 'community'} onClick={() => setActiveTab('community')} />
-          <NavItem icon={BarChart3} label={t.stats} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+          <NavItem icon={Edit3} label={t.tracker} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
+          <NavItem icon={Zap} active={activeTab === 'tasbih'} onClick={() => setActiveTab('tasbih')} isCenter />
+          <NavItem icon={BarChart3} label={t.statsNav} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+          <NavItem icon={CalendarIcon} label={t.schedule} active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} />
         </div>
       </nav>
     </div>

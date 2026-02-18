@@ -16,7 +16,7 @@ export const translations = {
     days: "Days",
     checklist: "Daily Checklist",
     home: "Home",
-    stats: "Stats",
+    statsNav: "Stats",
     social: "Social",
     tasbih: "Digital Tasbih",
     settings: "Settings",
@@ -40,10 +40,26 @@ export const translations = {
       Asr: "Asr",
       Maghrib: "Maghrib",
       Isha: "Isha"
+    },
+    trackerFields: {
+      roza: "Fasting Today",
+      sehri: "Sehri Taken",
+      iftar: "Iftar Done",
+      taraweeh: "Taraweeh Prayed",
+      quran: "Quran Pages",
+      zikr: "Zikr Count",
+      charity: "Charity Amount",
+      notes: "Notes"
+    },
+    stats: {
+      rozaRate: "Fasting Rate",
+      prayerConsistency: "Prayer Consistency",
+      quranProgress: "Quran Progress",
+      charityTotal: "Total Charity"
     }
   },
   bn: {
-    appName: "রমজান সুপার",
+    appName: "রমজান স্মার্ট ট্র্যাকার",
     next: "পরবর্তী",
     until: "বাকি",
     at: "সময়",
@@ -59,7 +75,7 @@ export const translations = {
     days: "দিন",
     checklist: "দৈনিক চেকলিস্ট",
     home: "হোম",
-    stats: "পরিসংখ্যান",
+    statsNav: "পরিসংখ্যান",
     social: "সামাজিক",
     tasbih: "ডিজিটাল তাসবিহ",
     settings: "সেটিংস",
@@ -83,8 +99,83 @@ export const translations = {
       Asr: "আসর",
       Maghrib: "মাগরিব",
       Isha: "এশা"
+    },
+    trackerFields: {
+      roza: "আজ রোজা রেখেছেন?",
+      sehri: "সেহরী খেয়েছেন?",
+      iftar: "ইফতার করেছেন?",
+      taraweeh: "তারাবীহ পড়েছেন?",
+      quran: "কুরআন (পৃষ্ঠা)",
+      zikr: "জিকির (সংখ্যা)",
+      charity: "দান (পরিমাণ)",
+      notes: "নোট"
+    },
+    stats: {
+      rozaRate: "রোজার হার",
+      prayerConsistency: "নামাজের ধারাবাহিকতা",
+      quranProgress: "কুরআন অগ্রগতি",
+      charityTotal: "মোট দান"
+    }
+  },
+  ar: {
+    appName: "متتبع رمضان الذكي",
+    next: "التالي",
+    until: "حتى",
+    at: "في",
+    aiCoach: "مدرب رمضان الذكي",
+    loadingAdvice: "جاري تحميل نصائحك الروحية...",
+    quran: "القرآن",
+    readListen: "قراءة واستماع",
+    zakat: "الزكاة",
+    calculateWealth: "حساب الثروة",
+    schedule: "جدول اليوم",
+    tracker: "متتبع العبادات",
+    streak: "التتابع الحالي",
+    days: "أيام",
+    checklist: "قائمة التحقق اليومية",
+    home: "الرئيسية",
+    statsNav: "الإحصائيات",
+    social: "اجتماعي",
+    tasbih: "تسبيح رقمي",
+    settings: "الإعدادات",
+    back: "رجوع",
+    surahs: "السور",
+    ayahs: "الآيات",
+    assets: "الأصول",
+    liabilities: "الالتزامات",
+    netWealth: "صافي الثروة",
+    zakatDue: "الزكاة المستحقة",
+    target: "الهدف",
+    sehriAlert: "تنبيه السحور",
+    minsBefore: "دقائق قبل",
+    setAlert: "ضبط التنبيه",
+    alertTitle: "وقت السحور!",
+    alertBody: "بقي {mins} دقائق فقط على انتهاء السحور.",
+    phrases: ['سبحان الله', 'الحمد لله', 'الله أكبر', 'لا إله إلا الله'],
+    salahNames: {
+      Fajr: "الفجر",
+      Dhuhr: "الظهر",
+      Asr: "العصر",
+      Maghrib: "المغرب",
+      Isha: "العشاء"
+    },
+    trackerFields: {
+      roza: "هل صمت اليوم؟",
+      sehri: "هل تسحرت؟",
+      iftar: "هل أفطرت؟",
+      taraweeh: "هل صليت التراويح؟",
+      quran: "صفحات القرآن",
+      zikr: "عدد الأذكار",
+      charity: "مبلغ الصدقة",
+      notes: "ملاحظات"
+    },
+    stats: {
+      rozaRate: "معدل الصيام",
+      prayerConsistency: "الانتظام في الصلاة",
+      quranProgress: "تقدم القرآن",
+      charityTotal: "إجمالي الصدقات"
     }
   }
 };
 
-export type Language = 'en' | 'bn';
+export type Language = 'en' | 'bn' | 'ar';

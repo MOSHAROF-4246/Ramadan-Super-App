@@ -16,26 +16,27 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT,
     email TEXT UNIQUE,
-    location TEXT,
-    preferences TEXT
+    location_city TEXT,
+    location_country TEXT,
+    language TEXT DEFAULT 'en',
+    theme TEXT DEFAULT 'light'
   );
 
-  CREATE TABLE IF NOT EXISTS ibadah_logs (
+  CREATE TABLE IF NOT EXISTS daily_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT,
     date TEXT,
-    type TEXT, -- 'salah', 'fasting', 'quran', 'charity'
-    value TEXT,
+    roza_kept INTEGER,
+    missed_reason TEXT,
+    sehri_taken INTEGER,
+    iftar_done INTEGER,
+    taraweeh_prayed INTEGER,
+    quran_pages INTEGER DEFAULT 0,
+    zikr_count INTEGER DEFAULT 0,
+    charity_amount REAL DEFAULT 0,
     notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS quran_progress (
-    user_id TEXT,
-    surah_id INTEGER,
-    ayah_id INTEGER,
-    completed BOOLEAN,
-    PRIMARY KEY (user_id, surah_id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, date)
   );
 `);
 
@@ -89,18 +90,55 @@ async function startServer() {
     }
   });
 
-  // Ibadah Logging
+  app.get("/api/calendar", async (req, res) => {
+    const { city, country, month, year, method = 2 } = req.query;
+    try {
+      const response = await fetch(`https://api.aladhan.com/v1/calendarByCity?city=${city}&country=${country}&method=${method}&month=${month}&year=${year}`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch calendar" });
+    }
+  });
+
+  // Daily Logging
   app.post("/api/logs", (req, res) => {
-    const { user_id, date, type, value, notes } = req.body;
-    const stmt = db.prepare("INSERT INTO ibadah_logs (user_id, date, type, value, notes) VALUES (?, ?, ?, ?, ?)");
-    const info = stmt.run(user_id, date, type, value, notes);
-    res.json({ id: info.lastInsertRowid });
+    const log = req.body;
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO daily_logs (user_id, date, roza_kept, missed_reason, sehri_taken, iftar_done, taraweeh_prayed, quran_pages, zikr_count, charity_amount, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, date) DO UPDATE SET
+          roza_kept=excluded.roza_kept,
+          missed_reason=excluded.missed_reason,
+          sehri_taken=excluded.sehri_taken,
+          iftar_done=excluded.iftar_done,
+          taraweeh_prayed=excluded.taraweeh_prayed,
+          quran_pages=excluded.quran_pages,
+          zikr_count=excluded.zikr_count,
+          charity_amount=excluded.charity_amount,
+          notes=excluded.notes
+      `);
+      stmt.run(
+        log.user_id, log.date, log.roza_kept ? 1 : 0, log.missed_reason, 
+        log.sehri_taken ? 1 : 0, log.iftar_done ? 1 : 0, log.taraweeh_prayed ? 1 : 0,
+        log.quran_pages, log.zikr_count, log.charity_amount, log.notes
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Log save error:", error);
+      res.status(500).json({ error: "Failed to save log" });
+    }
   });
 
   app.get("/api/logs/:userId", (req, res) => {
     const { userId } = req.params;
-    const logs = db.prepare("SELECT * FROM ibadah_logs WHERE user_id = ? ORDER BY date DESC").all(userId);
-    res.json(logs);
+    try {
+      const logs = db.prepare("SELECT * FROM daily_logs WHERE user_id = ? ORDER BY date DESC").all(userId);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
   });
 
   // Vite middleware for development

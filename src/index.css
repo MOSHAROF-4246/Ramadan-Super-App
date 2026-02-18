@@ -13,7 +13,11 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 text-stone-900 font-sans antialiased;
+    @apply bg-stone-50 text-stone-900 font-sans antialiased transition-colors duration-500;
+  }
+  
+  .dark body {
+    @apply bg-zinc-950 text-stone-100;
   }
 }
 
@@ -22,10 +26,39 @@
 }
 
 .dark .glass {
-  @apply bg-stone-900/70 border-stone-800/50;
+  @apply bg-zinc-900/40 border-white/5;
 }
 
 .arabic-text {
   font-family: var(--font-arabic);
+}
+
+[dir="rtl"] .arabic-text {
   direction: rtl;
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-ramadan-emerald/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-ramadan-emerald/40;
 }
