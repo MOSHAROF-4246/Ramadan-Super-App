@@ -39,7 +39,7 @@ db.exec(`
   );
 `);
 
-import { getRamadanCoachAdvice, getDuaRecommendation } from "./src/services/geminiService.js";
+import { getRamadanCoachAdvice, getDuaRecommendation } from "./src/services/geminiService";
 
 async function startServer() {
   const app = express();

@@ -2,43 +2,55 @@ import express from "express";
 import serverless from "serverless-http";
 import Database from "better-sqlite3";
 import path from "path";
-import { getRamadanCoachAdvice, getDuaRecommendation } from "../../src/services/geminiService.js";
+import { getRamadanCoachAdvice, getDuaRecommendation } from "../../src/services/geminiService";
 
 const app = express();
 app.use(express.json());
 
 // For Netlify, we use /tmp for the database as it's the only writable directory
 const dbPath = process.env.NETLIFY ? "/tmp/ramadan.db" : "ramadan.db";
-const db = new Database(dbPath);
+let db: any;
 
-// Initialize Database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    email TEXT UNIQUE,
-    location TEXT,
-    preferences TEXT
-  );
+try {
+  db = new Database(dbPath);
+  // Initialize Database
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT UNIQUE,
+      location TEXT,
+      preferences TEXT
+    );
 
-  CREATE TABLE IF NOT EXISTS ibadah_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT,
-    date TEXT,
-    type TEXT,
-    value TEXT,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+    CREATE TABLE IF NOT EXISTS ibadah_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      date TEXT,
+      type TEXT,
+      value TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
 
-  CREATE TABLE IF NOT EXISTS quran_progress (
-    user_id TEXT,
-    surah_id INTEGER,
-    ayah_id INTEGER,
-    completed BOOLEAN,
-    PRIMARY KEY (user_id, surah_id)
-  );
-`);
+    CREATE TABLE IF NOT EXISTS quran_progress (
+      user_id TEXT,
+      surah_id INTEGER,
+      ayah_id INTEGER,
+      completed BOOLEAN,
+      PRIMARY KEY (user_id, surah_id)
+    );
+  `);
+} catch (e) {
+  console.error("Database initialization failed:", e);
+  db = {
+    prepare: () => ({
+      run: () => ({ lastInsertRowid: 0 }),
+      all: () => []
+    }),
+    exec: () => {}
+  };
+}
 
 // API Routes
 app.get("/api/health", (req, res) => {
