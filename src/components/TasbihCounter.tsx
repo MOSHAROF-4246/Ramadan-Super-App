@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { RotateCcw, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const TasbihCounter = () => {
+import { translations, Language } from '../translations';
+
+export const TasbihCounter = ({ lang = 'en' }: { lang?: Language }) => {
+  const t = translations[lang];
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(33);
-  const [phrase, setPhrase] = useState('SubhanAllah');
+  const [phraseIndex, setPhraseIndex] = useState(0);
 
-  const phrases = ['SubhanAllah', 'Alhamdulillah', 'Allahu Akbar', 'La ilaha illallah'];
+  const phrases = t.phrases;
 
   const increment = () => {
     if (count < target) {
@@ -15,17 +18,17 @@ export const TasbihCounter = () => {
       if (window.navigator.vibrate) window.navigator.vibrate(50);
     } else {
       setCount(1);
-      const nextIndex = (phrases.indexOf(phrase) + 1) % phrases.length;
-      setPhrase(phrases[nextIndex]);
+      setPhraseIndex((phraseIndex + 1) % phrases.length);
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center py-12 space-y-8">
       <div className="text-center space-y-2">
-        <h3 className="text-2xl font-display font-bold text-ramadan-green">{phrase}</h3>
-        <p className="text-stone-400 text-sm uppercase tracking-widest">Target: {target}</p>
+        <h3 className="text-2xl font-display font-bold text-ramadan-green">{phrases[phraseIndex]}</h3>
+        <p className="text-stone-400 text-sm uppercase tracking-widest">{t.target}: {target}</p>
       </div>
+
 
       <div className="relative w-64 h-64 flex items-center justify-center">
         <svg className="absolute inset-0 w-full h-full -rotate-90">

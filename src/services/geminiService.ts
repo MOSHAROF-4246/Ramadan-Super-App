@@ -2,13 +2,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export async function getRamadanCoachAdvice(userContext: any) {
+export async function getRamadanCoachAdvice(userContext: any, lang: string = 'en') {
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash-exp",
     contents: [
       {
         role: "user",
-        parts: [{ text: `You are an expert Islamic Ramadan Coach. Based on the user's current progress: ${JSON.stringify(userContext)}, provide 3 actionable, motivational, and spiritually uplifting tips for today. Keep it concise and inspiring.` }]
+        parts: [{ text: `You are an expert Islamic Ramadan Coach. Based on the user's current progress: ${JSON.stringify(userContext)}, provide 3 actionable, motivational, and spiritually uplifting tips for today. Provide the response in ${lang === 'bn' ? 'Bengali' : 'English'}. Keep it concise and inspiring.` }]
       }
     ],
     config: {

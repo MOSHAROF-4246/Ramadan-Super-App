@@ -11,6 +11,7 @@ import { PrayerTimes, UserProfile, IbadahLog } from './types';
 import { QuranReader } from './components/QuranReader';
 import { ZakatCalculator } from './components/ZakatCalculator';
 import { TasbihCounter } from './components/TasbihCounter';
+import { translations, Language } from './translations';
 
 // --- Components ---
 
@@ -39,6 +40,8 @@ const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [lang, setLang] = useState<Language>('en');
+  const t = translations[lang];
   const [location, setLocation] = useState({ city: 'Dhaka', country: 'Bangladesh' });
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string, time: string } | null>(null);
@@ -49,7 +52,7 @@ export default function App() {
   useEffect(() => {
     fetchPrayerTimes();
     fetchAiAdvice();
-  }, [location]);
+  }, [location, lang]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -72,7 +75,7 @@ export default function App() {
   };
 
   const fetchAiAdvice = async () => {
-    const advice = await getRamadanCoachAdvice({ fasting: true, quran: '2 juz', mood: 'energetic' });
+    const advice = await getRamadanCoachAdvice({ fasting: true, quran: '2 juz', mood: 'energetic' }, lang);
     setAiAdvice(advice);
   };
 
@@ -106,15 +109,20 @@ export default function App() {
       {/* Header */}
       <header className="p-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-display font-bold text-ramadan-green">Ramadan Super</h1>
+          <h1 className="text-2xl font-display font-bold text-ramadan-green">{t.appName}</h1>
           <div className="flex items-center gap-1 text-stone-500 text-sm">
             <MapPin size={14} />
             <span>{location.city}, {location.country}</span>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
+            className="px-3 py-1 glass rounded-xl text-xs font-bold text-ramadan-emerald"
+          >
+            {lang === 'en' ? 'BN' : 'EN'}
+          </button>
           <button className="p-3 glass rounded-2xl text-stone-600"><Bell size={20} /></button>
-          <button className="p-3 glass rounded-2xl text-stone-600"><Settings size={20} /></button>
         </div>
       </header>
 
@@ -125,11 +133,15 @@ export default function App() {
             <Card className="bg-gradient-to-br from-ramadan-green to-emerald-900 text-white border-none overflow-hidden relative">
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">Next: {nextPrayer?.name}</span>
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                    {t.next}: {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name}
+                  </span>
                   <Moon className="text-ramadan-gold fill-ramadan-gold" size={24} />
                 </div>
                 <div className="text-4xl font-display font-bold mb-1">{countdown}</div>
-                <p className="text-white/70 text-sm">Until {nextPrayer?.name} at {nextPrayer?.time}</p>
+                <p className="text-white/70 text-sm">
+                  {t.until} {lang === 'bn' ? (t.salahNames[nextPrayer?.name as keyof typeof t.salahNames] || nextPrayer?.name) : nextPrayer?.name} {t.at} {nextPrayer?.time}
+                </p>
               </div>
               <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
                 <Moon size={150} />
@@ -142,9 +154,9 @@ export default function App() {
                 <div className="p-2 bg-ramadan-gold/20 rounded-xl text-ramadan-gold">
                   <Zap size={20} />
                 </div>
-                <h3 className="font-display font-bold text-stone-800">AI Ramadan Coach</h3>
+                <h3 className="font-display font-bold text-stone-800">{t.aiCoach}</h3>
               </div>
-              <p className="text-stone-600 text-sm italic mb-4">"{aiAdvice?.motivation || 'Loading your spiritual insights...'}"</p>
+              <p className="text-stone-600 text-sm italic mb-4">"{aiAdvice?.motivation || t.loadingAdvice}"</p>
               <div className="space-y-3">
                 {aiAdvice?.tips?.map((tip: string, i: number) => (
                   <div key={i} className="flex gap-3 items-start">
@@ -165,8 +177,8 @@ export default function App() {
               >
                 <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><BookOpen size={24} /></div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Quran</h4>
-                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">Read & Listen</p>
+                  <h4 className="font-bold text-stone-800">{t.quran}</h4>
+                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">{t.readListen}</p>
                 </div>
               </Card>
               <Card 
@@ -175,8 +187,8 @@ export default function App() {
               >
                 <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl"><Heart size={24} /></div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Zakat</h4>
-                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">Calculate Wealth</p>
+                  <h4 className="font-bold text-stone-800">{t.zakat}</h4>
+                  <p className="text-[10px] text-stone-500 uppercase tracking-tighter">{t.calculateWealth}</p>
                 </div>
               </Card>
             </div>
@@ -185,12 +197,12 @@ export default function App() {
             <Card>
               <h3 className="font-display font-bold text-stone-800 mb-4 flex items-center gap-2">
                 <Clock size={18} className="text-ramadan-emerald" />
-                Today's Schedule
+                {t.schedule}
               </h3>
               <div className="space-y-1">
                 {prayerTimes && Object.entries(prayerTimes).filter(([k]) => !['Imsak', 'Midnight', 'Sunset'].includes(k)).map(([name, time]) => (
                   <div key={name} className={`flex justify-between items-center p-3 rounded-2xl transition-all ${nextPrayer?.name === name ? 'bg-ramadan-emerald/10 text-ramadan-emerald font-bold' : 'text-stone-600'}`}>
-                    <span>{name}</span>
+                    <span>{lang === 'bn' ? (t.salahNames[name as keyof typeof t.salahNames] || name) : name}</span>
                     <span className="font-mono">{time}</span>
                   </div>
                 ))}
@@ -201,12 +213,12 @@ export default function App() {
 
         {activeTab === 'tracker' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">Ibadah Tracker</h2>
+            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.tracker}</h2>
             <Card>
               <div className="flex justify-between items-center mb-6">
                 <div className="flex flex-col">
-                  <span className="text-xs text-stone-400 uppercase font-bold tracking-widest">Current Streak</span>
-                  <span className="text-3xl font-display font-bold text-ramadan-emerald">12 Days</span>
+                  <span className="text-xs text-stone-400 uppercase font-bold tracking-widest">{t.streak}</span>
+                  <span className="text-3xl font-display font-bold text-ramadan-emerald">12 {t.days}</span>
                 </div>
                 <Award size={48} className="text-ramadan-gold" />
               </div>
@@ -220,10 +232,10 @@ export default function App() {
             </Card>
 
             <div className="space-y-4">
-              <h3 className="font-display font-bold text-stone-800">Daily Checklist</h3>
+              <h3 className="font-display font-bold text-stone-800">{t.checklist}</h3>
               {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'Taraweeh', 'Quran Reading', 'Sadaqah'].map((item) => (
                 <div key={item} className="flex items-center justify-between p-4 glass rounded-2xl">
-                  <span className="font-medium text-stone-700">{item}</span>
+                  <span className="font-medium text-stone-700">{lang === 'bn' ? (t.salahNames[item as keyof typeof t.salahNames] || item) : item}</span>
                   <input type="checkbox" className="w-6 h-6 rounded-lg accent-ramadan-emerald" />
                 </div>
               ))}
@@ -233,22 +245,22 @@ export default function App() {
 
         {activeTab === 'quran' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">Holy Quran</h2>
-            <QuranReader />
+            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.quran}</h2>
+            <QuranReader lang={lang} />
           </div>
         )}
 
         {activeTab === 'zakat' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">Zakat Calculator</h2>
-            <ZakatCalculator />
+            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.zakat}</h2>
+            <ZakatCalculator lang={lang} />
           </div>
         )}
 
         {activeTab === 'tasbih' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-display font-bold text-ramadan-green">Digital Tasbih</h2>
-            <TasbihCounter />
+            <h2 className="text-2xl font-display font-bold text-ramadan-green">{t.tasbih}</h2>
+            <TasbihCounter lang={lang} />
           </div>
         )}
 
@@ -278,8 +290,8 @@ export default function App() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 z-50">
         <div className="glass rounded-[32px] p-4 flex justify-between items-center shadow-2xl border-white/40">
-          <NavItem icon={Home} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <NavItem icon={Calendar} label="Tracker" active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
+          <NavItem icon={Home} label={t.home} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+          <NavItem icon={Calendar} label={t.tracker} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
           <div className="relative -top-8">
             <button 
               onClick={() => setActiveTab('tasbih')}
@@ -288,8 +300,8 @@ export default function App() {
               <Zap size={32} />
             </button>
           </div>
-          <NavItem icon={Users} label="Social" active={activeTab === 'community'} onClick={() => setActiveTab('community')} />
-          <NavItem icon={BarChart3} label="Stats" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
+          <NavItem icon={Users} label={t.social} active={activeTab === 'community'} onClick={() => setActiveTab('community')} />
+          <NavItem icon={BarChart3} label={t.stats} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
         </div>
       </nav>
     </div>

@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Search, Book, Play, Pause, Bookmark } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const QuranReader = () => {
+import { translations, Language } from '../translations';
+
+export const QuranReader = ({ lang = 'en' }: { lang?: Language }) => {
+  const t = translations[lang];
   const [surahs, setSurahs] = useState<any[]>([]);
   const [selectedSurah, setSelectedSurah] = useState<any>(null);
   const [ayahs, setAyahs] = useState<any[]>([]);
@@ -52,7 +55,7 @@ export const QuranReader = () => {
               </div>
               <div className="text-right">
                 <div className="arabic-text text-xl text-ramadan-green">{s.name}</div>
-                <div className="text-[10px] text-stone-400 uppercase">{s.numberOfAyahs} Ayahs</div>
+                <div className="text-[10px] text-stone-400 uppercase">{s.numberOfAyahs} {t.ayahs}</div>
               </div>
             </button>
           ))}
@@ -63,7 +66,7 @@ export const QuranReader = () => {
             onClick={() => setSelectedSurah(null)}
             className="text-ramadan-emerald font-bold flex items-center gap-2"
           >
-            ← Back to Surahs
+            ← {t.back}
           </button>
           
           <div className="text-center py-8">
@@ -72,7 +75,7 @@ export const QuranReader = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-stone-400">Loading Ayahs...</div>
+            <div className="text-center py-12 text-stone-400">Loading...</div>
           ) : (
             <div className="space-y-8">
               {ayahs.map((a, i) => (

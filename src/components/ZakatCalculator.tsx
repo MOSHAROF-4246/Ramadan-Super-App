@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Calculator, Info, ArrowRight } from 'lucide-react';
 
-export const ZakatCalculator = () => {
+import { translations, Language } from '../translations';
+
+export const ZakatCalculator = ({ lang = 'en' }: { lang?: Language }) => {
+  const t = translations[lang];
   const [assets, setAssets] = useState<Record<string, number>>({
     cash: 0,
     gold: 0,
@@ -36,7 +39,7 @@ export const ZakatCalculator = () => {
       <div className="space-y-4">
         <h3 className="font-bold text-stone-800 flex items-center gap-2">
           <ArrowRight size={16} className="text-ramadan-emerald" />
-          Assets
+          {t.assets}
         </h3>
         <div className="grid grid-cols-1 gap-3">
           {Object.keys(assets).map((key) => (
@@ -44,7 +47,7 @@ export const ZakatCalculator = () => {
               <label className="text-sm font-medium text-stone-600 capitalize">{key}</label>
               <input 
                 type="number" 
-                value={assets[key as keyof typeof assets]}
+                value={assets[key]}
                 onChange={(e) => setAssets({...assets, [key]: parseFloat(e.target.value) || 0})}
                 className="w-24 text-right bg-transparent font-bold text-stone-800 focus:outline-none"
               />
@@ -54,7 +57,7 @@ export const ZakatCalculator = () => {
 
         <h3 className="font-bold text-stone-800 flex items-center gap-2 mt-6">
           <ArrowRight size={16} className="text-ramadan-emerald" />
-          Liabilities
+          {t.liabilities}
         </h3>
         <div className="grid grid-cols-1 gap-3">
           {Object.keys(liabilities).map((key) => (
@@ -62,7 +65,7 @@ export const ZakatCalculator = () => {
               <label className="text-sm font-medium text-stone-600 capitalize">{key}</label>
               <input 
                 type="number" 
-                value={liabilities[key as keyof typeof liabilities]}
+                value={liabilities[key]}
                 onChange={(e) => setLiabilities({...liabilities, [key]: parseFloat(e.target.value) || 0})}
                 className="w-24 text-right bg-transparent font-bold text-stone-800 focus:outline-none"
               />
@@ -73,12 +76,12 @@ export const ZakatCalculator = () => {
 
       <div className="p-6 bg-ramadan-green rounded-3xl text-white space-y-4 shadow-xl shadow-ramadan-green/20">
         <div className="flex justify-between items-center opacity-70 text-sm">
-          <span>Net Wealth</span>
+          <span>{t.netWealth}</span>
           <span>${netWealth.toLocaleString()}</span>
         </div>
         <div className="flex justify-between items-end">
           <div>
-            <div className="text-xs uppercase font-bold tracking-widest opacity-70">Zakat Due</div>
+            <div className="text-xs uppercase font-bold tracking-widest opacity-70">{t.zakatDue}</div>
             <div className="text-4xl font-display font-bold">${zakatDue.toLocaleString()}</div>
           </div>
           <Calculator size={40} className="opacity-20" />
